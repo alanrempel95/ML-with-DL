@@ -26,17 +26,26 @@ pygame.init()
 
 #scale variable
 canvas_width = 300
+canvas_height = 400
 cross_check = (False, "empty")
 nought_check = (False, "empty")
 
 # Set up the drawing window
-screen = pygame.display.set_mode([canvas_width, canvas_width])
+screen = pygame.display.set_mode([canvas_width, canvas_height])
 pygame.display.set_caption("The Tick-Tackiest!")
 font = pygame.font.SysFont("Arial", 18)
 c_string = ""
 
 board_tiles = [["e", "e", "e"], ["e", "e", "e"], ["e", "e", "e"]]
 current_piece = "nought" #what is currently being placed onclick
+
+#scoring variables
+cross_wins = 0
+nought_wins = 0
+cross_score = 0
+nought_score = 0
+win_score = 100 #fitness for winning a match
+draw_score = 25 #fitness for drawing a match
 
 def drawNought(x_ind, y_ind):
     # Draw a nought. x_ind e in [0, 1, 2]
@@ -120,9 +129,9 @@ def restart():
         for j in range(3):
             board_tiles[i][j] = "e"
     #why are these global variables considered local
-    c_string = ""
-    cross_check = (False, "")
-    nought_check = (False, "")
+    #c_string = ""
+    #cross_check = (False, "")
+    #nought_check = (False, "")
 
 # Run until the user asks to quit
 running = True
@@ -134,6 +143,8 @@ while running:
     # Draw game grid lines
     pygame.draw.line(screen, (0,0,0), (canvas_width / 3, 0), (canvas_width / 3, canvas_width))
     pygame.draw.line(screen, (0,0,0), (canvas_width * 2 / 3, 0), (canvas_width * 2 / 3, canvas_width))
+    pygame.draw.line(screen, (0,0,0), (0, 0), (canvas_width, 0))
+    pygame.draw.line(screen, (0,0,0), (0, canvas_width), (canvas_width, canvas_width))
     pygame.draw.line(screen, (0,0,0), (0, canvas_width / 3), (canvas_width, canvas_width / 3))
     pygame.draw.line(screen, (0,0,0), (0, canvas_width * 2 / 3), (canvas_width, canvas_width * 2 / 3))
 
@@ -156,31 +167,42 @@ while running:
             # Was it the Escape key? If so, stop the loop.
             if event.key == K_ESCAPE:
                 restart()
+                c_string = ""
+                cross_check = (False, "")
+                nought_check = (False, "")
         elif event.type == MOUSEBUTTONDOWN:
             #based on mouse position, assign piece location
             mouse_pos = pygame.mouse.get_pos()
-            if mouse_pos[0] < canvas_width / 3:
-                piece_x = 0
-            elif mouse_pos[0] >= canvas_width / 3 and mouse_pos[0] <= canvas_width * 2 / 3:
-                piece_x = 1
-            else:
-                piece_x = 2
-            if mouse_pos[1] < canvas_width / 3:
-                piece_y = 0
-            elif mouse_pos[1] >= canvas_width / 3 and mouse_pos[1] <= canvas_width * 2 / 3:
-                piece_y = 1
-            else:
-                piece_y = 2
-            #if the location is empty, place & switch turn
-            if board_tiles[piece_y][piece_x] == "e":
-                board_tiles[piece_y][piece_x] = current_piece
-                if current_piece == "nought":
-                    current_piece = "cross"
+            if (not cross_check[0] and not nought_check[0]):
+                if mouse_pos[0] < canvas_width / 3:
+                    piece_x = 0
+                elif mouse_pos[0] >= canvas_width / 3 and mouse_pos[0] <= canvas_width * 2 / 3:
+                    piece_x = 1
                 else:
-                    current_piece = "nought"
-                    
-            cross_check = checkVictory("cross")
-            nought_check = checkVictory("nought")
+                    piece_x = 2
+                if mouse_pos[1] < canvas_width / 3:
+                    piece_y = 0
+                elif mouse_pos[1] >= canvas_width / 3 and mouse_pos[1] <= canvas_width * 2 / 3:
+                    piece_y = 1
+                else:
+                    piece_y = 2
+                #if the location is empty, place & switch turn
+                if board_tiles[piece_y][piece_x] == "e":
+                    board_tiles[piece_y][piece_x] = current_piece
+                    if current_piece == "nought":
+                        current_piece = "cross"
+                    else:
+                        current_piece = "nought"
+            
+                #determine if somebody one and increment score as needed        
+                cross_check = checkVictory("cross")
+                nought_check = checkVictory("nought")
+                if cross_check[0]:
+                    cross_wins += 1
+                    cross_score += win_score
+                elif nought_check[0]:
+                    nought_wins += 1
+                    nought_score += win_score
     
     #render victory text to the screen
     if cross_check[0]:
@@ -194,6 +216,15 @@ while running:
     textRect = text.get_rect()
     textRect.center = (canvas_width / 2, canvas_width / 2)
     screen.blit(text, textRect)
+    
+    ctext = font.render("Cross Wins: " + str(cross_wins), True, (0, 0, 255))
+    ntext = font.render("Nought Wins: " + str(nought_wins), True, (0, 255, 0))
+    ctextRect = ctext.get_rect()
+    ntextRect = ntext.get_rect()
+    ctextRect.center = (canvas_width / 2, canvas_height  - (canvas_height - canvas_width) / 2 - 15)
+    ntextRect.center = (canvas_width / 2, canvas_height  - (canvas_height - canvas_width) / 2 + 15)
+    screen.blit(ctext, ctextRect)
+    screen.blit(ntext, ntextRect)
     
     # Flip the display
     pygame.display.flip()
